@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Elpris – SE3 price & cost",
+  "short_name": "Elpris",
+  "description": "SE3 electricity prices per quarter-hour, cheapest times and your monthly cost.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "orientation": "portrait-primary",
+  "lang": "en",
+  "icons": [
+    { "src": "icon-192.png?v=1", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png?v=1", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg?v=1", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
