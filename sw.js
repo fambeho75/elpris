@@ -1,13 +1,13 @@
 /* Elpris — offline cache.
    App shell: cache-first with background refresh (bump CACHE when HTML/CSS/JS change).
    Price API (elprisetjustnu.se): network-first, falls back to the last cached copy. */
-const CACHE = "elpris-v2";
+const CACHE = "elpris-v3";
 const API_CACHE = "elpris-api-v1";
 const ASSETS = [
-  "./", "./index.html", "./styles.css?v=2", "./tariff.js?v=2", "./app.js?v=2",
-  "./manifest.webmanifest?v=2", "./icon.svg?v=2", "./icon-rounded.svg?v=2", "./favicon-32.png?v=2",
-  "./apple-touch-icon.png?v=2", "./icon-192.png?v=2", "./icon-512.png?v=2",
-  "./icon-maskable-192.png?v=2", "./icon-maskable-512.png?v=2",
+  "./", "./index.html", "./styles.css?v=3", "./tariff.js?v=3", "./app.js?v=3",
+  "./manifest.webmanifest?v=3", "./icon.svg?v=3", "./icon-rounded.svg?v=3", "./favicon-32.png?v=3",
+  "./apple-touch-icon.png?v=3", "./icon-192.png?v=3", "./icon-512.png?v=3",
+  "./icon-maskable-192.png?v=3", "./icon-maskable-512.png?v=3",
 ];
 
 self.addEventListener("install", (event) => {
