@@ -12,6 +12,8 @@
   const f0 = nf(0), f1 = nf(1), f2 = nf(2);
   const ore = (v) => `${f1.format(v)} öre`;
   const kr = (v, d = 0) => `${(d ? f2 : f0).format(v)} kr`;
+  const oreN = (v) => (Math.abs(v * 10 - Math.round(v * 10)) < 1e-9 ? f1 : f2).format(v);
+  const rate = (v) => `${oreN(v)} öre/kWh`;
   const hm = (pt) => pt.iso.slice(11, 16);
   const endHm = (pt) => new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).format(pt.end);
   const dateFmt = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
@@ -26,7 +28,9 @@
   const load = (k, fb) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? fb : v; } catch (e) { return fb; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 
-  let cfg = Object.assign({}, T.DEFAULTS, load(LS_CFG, {}));
+  const savedCfg = load(LS_CFG, null);
+  let cfg = T.migrateCfg(savedCfg);
+  if (!savedCfg || savedCfg.version !== cfg.version) save(LS_CFG, cfg);
   const ui = Object.assign({ mode: "total", day: "today", res: "q", dur: 120, kwh: 1.0, sel: null, settings: false }, load(LS_UI, {}));
   ui.sel = null; ui.settings = false;
   let actual = load(LS_ACT, {});
@@ -125,7 +129,7 @@
     const dark = document.documentElement.getAttribute("data-theme") !== "light";
     return `<header class="top">
       <div class="logo">${LOGO}</div>
-      <div class="title"><h1>Elpris</h1><p>${esc(cfg.area)} · Skövde · GodEl Kvartspris</p></div>
+      <div class="title"><h1>Elpris</h1><p>${esc(cfg.area)} · Skövde · Telinet Kvartspris</p></div>
       <button class="icon-btn" data-action="theme" aria-label="${dark ? "Switch to light mode" : "Switch to dark mode"}">${dark ? ICON_SUN : ICON_MOON}</button>
       <button class="icon-btn" data-action="settings" aria-label="Settings">${ICON_GEAR}</button>
     </header>`;
@@ -159,7 +163,7 @@
         <span><i class="sw spot"></i>Spot ${f1.format(b.spot)}</span>
         <span><i class="sw grid"></i>Grid ${f1.format(b.grid)}${b.high ? " (peak)" : ""}</span>
         <span><i class="sw tax"></i>Tax ${f1.format(b.tax)}</span>
-        <span><i class="sw other"></i>GodEl ${f1.format(b.other)}</span>
+        <span><i class="sw other"></i>Telinet ${oreN(b.other)}</span>
       </div>
       <p class="faint">Spot excl. moms: ${f1.format(cur.spotEx)} öre/kWh</p>
     </section>`;
@@ -288,8 +292,8 @@
         · ${f1.format(est.perKwh)} öre/kWh all-in<br>So far: ${f0.format(est.soFar.kwh)} kWh ≈ ${kr(est.soFar.kr)}</p>
       <table class="lines">
         ${row("Electricity (spot)", L.spot, `${f1.format(est.profileSpotInc)} öre avg`)}
-        ${row("GodEl other costs", L.other, `${f1.format(cfg.supplierOtherInc + cfg.supplierMarkupInc)} öre/kWh`)}
-        ${row("GodEl monthly fee", L.supplierFee)}
+        ${row("Telinet påslag", L.other, `${rate(cfg.supplierOtherInc + cfg.supplierMarkupInc)}, moms incl. unconfirmed`)}
+        ${row("Telinet monthly fee", L.supplierFee, "0 kr for 24 months, then 69 kr")}
         ${row("Grid fixed fee", L.gridFixed, `${T.GRID_TARIFFS[cfg.fuse] ? T.GRID_TARIFFS[cfg.fuse].code + ", " + cfg.fuse + " A" : ""}`)}
         ${row("Grid transfer", L.gridVar, `${f0.format(est.kwhHigh)} kWh peak-time`)}
         ${L.effekt ? row("Grid power fee", L.effekt, `${f1.format(cfg.peakKw)} kW peak`) : ""}
@@ -297,10 +301,10 @@
         <tr class="sum"><td>Total</td><td>${kr(est.total)}</td></tr>
       </table>
       <div class="cmp" data-test="compare">
-        <div class="cmp-row"><span>GodEl</span><div class="cmp-bar"><i style="width:${(est.total / maxBar) * 100}%"></i></div><b>${kr(est.total)}</b></div>
+        <div class="cmp-row"><span>Telinet</span><div class="cmp-bar"><i style="width:${(est.total / maxBar) * 100}%"></i></div><b>${kr(est.total)}</b></div>
         <div class="cmp-row"><span>${esc(cfg.compareName)}</span><div class="cmp-bar old"><i style="width:${(est.compare / maxBar) * 100}%"></i></div><b>${kr(est.compare)}</b></div>
-        <p class="${est.saving > 0 ? "good" : "muted"}">${est.saving >= 0 ? `GodEl saves about ${kr(est.saving)} this month` : `${esc(cfg.compareName)} would be ${kr(-est.saving)} cheaper`}
-          <span class="faint">(${esc(cfg.compareName)}: ${f0.format(cfg.compareFeeInc)} kr/mo + ${f1.format(cfg.compareMarkupInc)} öre/kWh)</span></p>
+        <p class="${est.saving > 0 ? "good" : "muted"}">${est.saving >= 0 ? `Telinet saves about ${kr(est.saving)} this month` : `${esc(cfg.compareName)} would be ${kr(-est.saving)} cheaper`}
+          <span class="faint">(${esc(cfg.compareName)}: ${f0.format(cfg.compareFeeInc)} kr/mo + ${rate((cfg.compareMarkupInc || 0) + (cfg.compareOtherInc || 0))})</span></p>
       </div>
       <label class="inline">Actual kWh this month (from your bill) <input type="number" inputmode="numeric" min="0" step="1" placeholder="${f0.format(est.estKwh).replace(/\s/g, "")}" value="${actual[mk] || ""}" data-actual="${mk}"></label>
       <p class="faint">Prices known for ${est.knownDays} of ${est.nDays} days; the remaining days use this month's profile-weighted average (${f1.format(est.profileSpotInc)} öre incl. moms, plain average ${f1.format(est.plainSpotInc)}).
@@ -317,11 +321,12 @@
     ["gridLowEx", "Grid transfer, off-peak", "öre/kWh excl. moms", 0.1],
     ["gridHighEx", "Grid transfer, peak (Nov–Mar weekdays 06–22)", "öre/kWh excl. moms", 0.1],
     ["effektFeeEx", "Grid power fee (Nov–Mar)", "kr/kW/month excl. moms", 1],
-    ["supplierFeeInc", "GodEl monthly fee", "kr/month incl. moms", 1],
-    ["supplierOtherInc", "GodEl other costs (elcert etc.)", "öre/kWh incl. moms", 0.1],
-    ["supplierMarkupInc", "GodEl markup", "öre/kWh incl. moms", 0.1],
-    ["compareFeeInc", "Telinet monthly fee", "kr/month incl. moms", 1],
-    ["compareMarkupInc", "Telinet markup", "öre/kWh incl. moms", 0.1],
+    ["supplierFeeInc", "Telinet monthly fee", "kr/month incl. moms", 1],
+    ["supplierMarkupInc", "Telinet påslag (elcertifikat), unconfirmed", "öre/kWh (moms incl. unconfirmed)", 0.01],
+    ["supplierOtherInc", "Telinet other costs", "öre/kWh incl. moms", 0.1],
+    ["compareFeeInc", "GodEl monthly fee", "kr/month incl. moms", 1],
+    ["compareOtherInc", "GodEl other costs (elcert etc.)", "öre/kWh incl. moms", 0.1],
+    ["compareMarkupInc", "GodEl markup", "öre/kWh incl. moms", 0.1],
     ["vat", "Moms", "%", 1],
   ];
   function settings() {
@@ -334,6 +339,8 @@
           `<option value="${a}" ${cfg.fuse === a ? "selected" : ""}>${a} A · ${t.code}</option>`).join("")}</select></label>
       ${FIELDS.map(([k, label, unit, step]) => `<label class="field"><span>${label}</span>
         <span class="inp"><input type="number" inputmode="decimal" step="${step}" value="${cfg[k]}" data-cfg="${k}"><em>${unit}</em></span></label>`).join("")}
+      <p class="faint">Telinet “2 års dynamiskt pris” starts 1 Dec 2026. The monthly fee is 0 kr for 24 months, then 69 kr.
+        The 2,24 öre/kWh påslag (elcertifikat) is unconfirmed — the contract does not say whether moms is included. Edit the field when the next invoice shows the figure.</p>
       <p class="faint">Grid and tax figures are Skövde Energi Elnät's and Skatteverket's 2026 rates. Choosing a fuse fills in that tariff.
         Skövde Energi changes its tariff model on 1 Jan 2027 — update these then.</p>
       <div class="row gap"><button class="btn" data-action="reset">Reset to defaults</button></div>

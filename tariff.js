@@ -16,7 +16,7 @@
   };
 
   const DEFAULTS = {
-    version: 1,
+    version: 2,
     area: "SE3",
     vat: 25,                    // moms %
     energyTaxEx: 36.0,          // energiskatt 2026, öre/kWh exkl. moms (Skatteverket)
@@ -26,14 +26,31 @@
     gridHighEx: 22,             // öre/kWh exkl. moms, höglast (nov–mar, vardag 06–22)
     effektFeeEx: 66,            // kr/kW/månad exkl. moms, höglastmånader
     peakKw: 4.5,                // estimated highest hourly kW on a weekday 06–22 in winter
-    supplierFeeInc: 49,         // GodEl kr/mån inkl. moms
-    supplierMarkupInc: 0,       // GodEl påslag öre/kWh inkl. moms
-    supplierOtherInc: 6.0,      // GodEl Kvartspris "övriga kostnader" SE3, öre/kWh inkl. moms
-    compareName: "Telinet",
-    compareFeeInc: 69,          // kr/mån inkl. moms
-    compareMarkupInc: 16.8,     // öre/kWh inkl. moms
+    supplierFeeInc: 0,          // Telinet kr/mån inkl. moms; 0 for 24 months from 2026-12-01, then 69
+    supplierMarkupInc: 2.24,    // Telinet påslag elcertifikat öre/kWh; UNCONFIRMED whether moms is included
+    supplierOtherInc: 0,        // no separate "övriga kostnader" on this contract
+    compareName: "GodEl",
+    compareFeeInc: 49,          // GodEl kr/mån inkl. moms
+    compareMarkupInc: 0,        // GodEl påslag öre/kWh inkl. moms
+    compareOtherInc: 6.0,       // GodEl "övriga kostnader" SE3, öre/kWh inkl. moms
     annualKwh: 8500,
   };
+
+  const KEEP_ON_MIGRATE = [
+    "area", "vat", "energyTaxEx", "fuse", "gridFixedYearEx", "gridLowEx", "gridHighEx",
+    "effektFeeEx", "peakKw", "annualKwh",
+  ];
+
+  /** Merge a saved config onto current defaults. Supplier/compare fields from v1 (GodEl as main) are replaced. */
+  function migrateCfg(saved) {
+    const base = saved && typeof saved === "object" ? saved : {};
+    if ((base.version || 0) >= DEFAULTS.version) return Object.assign({}, DEFAULTS, base);
+    const next = Object.assign({}, DEFAULTS);
+    for (const k of KEEP_ON_MIGRATE) {
+      if (base[k] != null) next[k] = base[k];
+    }
+    return next;
+  }
 
   // Share of annual use per month for a heat-pump villa in south/central Sweden (sums to 1).
   const MONTH_WEIGHTS = [0.130, 0.115, 0.105, 0.085, 0.060, 0.045, 0.040, 0.045, 0.060, 0.085, 0.105, 0.125];
@@ -239,7 +256,8 @@
       tax: kr(monthKwh * cfg.energyTaxEx),
     };
     const total = Object.values(lines).reduce((a, b) => a + b, 0);
-    const compare = total - lines.other - lines.supplierFee + (monthKwh * cfg.compareMarkupInc) / 100 + cfg.compareFeeInc;
+    const comparePerKwh = (cfg.compareMarkupInc || 0) + (cfg.compareOtherInc || 0);
+    const compare = total - lines.other - lines.supplierFee + (monthKwh * comparePerKwh) / 100 + cfg.compareFeeInc;
     const fixed = lines.supplierFee + lines.gridFixed + lines.effekt;
     const elapsed = totalQ ? elapsedQ / totalQ : 0;
     return {
@@ -252,7 +270,7 @@
   }
 
   const api = {
-    GRID_TARIFFS, DEFAULTS, MONTH_WEIGHTS, HOUR_WEIGHTS,
+    GRID_TARIFFS, DEFAULTS, MONTH_WEIGHTS, HOUR_WEIGHTS, migrateCfg,
     parts, ymd, addDays, daysInMonth, easter, holidays, isHighLoad, isHighSeason,
     normalize, breakdown, priceOf, stats, hourly, cheapestWindow, monthEstimate, gridEx,
   };

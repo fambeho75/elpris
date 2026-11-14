@@ -40,7 +40,7 @@ async function page(browser, opts, theme, routeFn) {
   const mnum = +month.replace(/[^\d]/g, "");
   ok("month estimate sane (800–6000 kr)", mnum > 800 && mnum < 6000, month);
   const cmp = (await p.locator("[data-test=compare]").innerText()).replace(/\s+/g, " ");
-  ok("Telinet comparison shown", /Telinet/.test(cmp), cmp);
+  ok("comparison shows Telinet vs GodEl", /Telinet/.test(cmp) && /GodEl/.test(cmp), cmp);
   await p.screenshot({ path: `${OUT}/iphone-dark.png` });
   await p.screenshot({ path: `${OUT}/iphone-dark-full.png`, fullPage: true });
   // hourly toggle

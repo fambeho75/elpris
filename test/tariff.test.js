@@ -11,9 +11,9 @@ assert.strictEqual(T.isHighLoad(T.parts("2026-12-24T12:00:00+01:00")), false, "J
 assert.strictEqual(T.isHighLoad(T.parts("2026-06-10T12:00:00+02:00")), false, "June = off-peak");
 assert.strictEqual(T.easter(2026), "2026-04-05");
 
-// breakdown: 100 öre spot ex moms, peak → (100 + 22 + 36)*1.25 + 6.0
+// breakdown: 100 öre spot ex moms, peak → (100 + 22 + 36)*1.25 + 2.24 (Telinet påslag)
 const b = T.breakdown({ iso: "2026-11-09T07:00:00+01:00", spotEx: 100 }, cfg);
-assert.ok(Math.abs(b.total - ((100 + 22 + 36) * 1.25 + 6)) < 1e-9, "breakdown total");
+assert.ok(Math.abs(b.total - ((100 + 22 + 36) * 1.25 + 2.24)) < 1e-9, "breakdown total");
 
 // hourly data gets expanded to quarters
 const exp = T.normalize([{ SEK_per_kWh: 1, time_start: "2026-11-09T01:00:00+01:00", time_end: "2026-11-09T02:00:00+01:00" }]);
@@ -30,6 +30,45 @@ const pts = T.normalize(raw);
 const w = T.cheapestWindow(pts, 120, 1, Date.parse("2026-11-09T00:10:00+01:00"), cfg, "spot");
 assert.strictEqual(w.best.start.iso.slice(11, 16), "03:00", "cheapest 2h starts 03:00");
 assert.ok(Math.abs(w.best.costKr - 0.25) < 1e-9, "2h @ 20 öre ex = 25 öre inc for 1 kWh");
+
+
+assert.strictEqual(T.DEFAULTS.version, 2);
+assert.strictEqual(T.DEFAULTS.supplierFeeInc, 0);
+assert.strictEqual(T.DEFAULTS.supplierMarkupInc, 2.24);
+assert.strictEqual(T.DEFAULTS.supplierOtherInc, 0);
+assert.strictEqual(T.DEFAULTS.compareName, "GodEl");
+assert.strictEqual(T.DEFAULTS.compareFeeInc, 49);
+assert.strictEqual(T.DEFAULTS.compareOtherInc, 6.0);
+
+const migrated = T.migrateCfg({
+  version: 1,
+  supplierFeeInc: 49,
+  supplierMarkupInc: 0,
+  supplierOtherInc: 6.0,
+  compareName: "Telinet",
+  compareFeeInc: 69,
+  compareMarkupInc: 16.8,
+  fuse: "25",
+  peakKw: 5.5,
+  annualKwh: 9000,
+  gridFixedYearEx: 2425,
+});
+assert.strictEqual(migrated.version, 2);
+assert.strictEqual(migrated.supplierFeeInc, 0);
+assert.strictEqual(migrated.supplierMarkupInc, 2.24);
+assert.strictEqual(migrated.supplierOtherInc, 0);
+assert.strictEqual(migrated.compareName, "GodEl");
+assert.strictEqual(migrated.compareFeeInc, 49);
+assert.strictEqual(migrated.compareOtherInc, 6.0);
+assert.strictEqual(migrated.compareMarkupInc, 0);
+assert.strictEqual(migrated.fuse, "25");
+assert.strictEqual(migrated.peakKw, 5.5);
+assert.strictEqual(migrated.annualKwh, 9000);
+assert.strictEqual(migrated.gridFixedYearEx, 2425);
+
+const already = T.migrateCfg({ version: 2, supplierFeeInc: 10, peakKw: 3 });
+assert.strictEqual(already.supplierFeeInc, 10, "v2 custom fee kept");
+assert.strictEqual(already.peakKw, 3);
 
 (async () => {
   const day = (d) => fetch(`https://www.elprisetjustnu.se/api/v1/prices/2026/11-${d}_SE3.json`).then((r) => (r.ok ? r.json() : null));
@@ -57,6 +96,6 @@ assert.ok(Math.abs(w.best.costKr - 0.25) < 1e-9, "2h @ 20 öre ex = 25 öre inc 
   }, null, 1));
   assert.ok(st.avg > 40 && st.avg < 1000, "sane avg");
   assert.ok(est.total > 800 && est.total < 6000, "sane month total");
-  assert.ok(est.saving > 0, "GodEl cheaper than Telinet");
+  assert.ok(est.saving > 0, "Telinet cheaper than GodEl");
   console.log("all tariff tests passed");
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -1,12 +1,12 @@
 # Elpris
 
-Small installable web app (PWA) for electricity in Skövde, **elområde SE3**, on **GodEl Kvartspris**.
+Small installable web app (PWA) for electricity in Skövde, **elområde SE3**, on **Telinet Kvartspris** (“2 års dynamiskt pris”).
 Plain HTML/CSS/JS, no build step. Works under any sub-path (e.g. `https://fambeho75.github.io/elpris/`).
 
 - Today's and tomorrow's quarter-hour prices (tomorrow appears ~13:00), bar chart with 15 min / hour toggle, now highlighted, min / avg / max.
-- **Total** price per kWh incl. moms = spot + Skövde Energi grid transfer (peak/off-peak) + energiskatt + GodEl other costs; **Spot** toggle shows spot incl. moms.
+- **Total** price per kWh incl. moms = spot + Skövde Energi grid transfer (peak/off-peak) + energiskatt + Telinet påslag; **Spot** toggle shows spot incl. moms.
 - Cheapest continuous window for 1 / 2 (Miele, 1 kWh) / 3 / 4 h or any duration, in the remaining known prices, with cost vs starting now.
-- This month's bill estimate (typical heat-pump villa load profile × annual kWh × month weight, real prices for the days so far), override with the actual kWh from the bill, and a comparison with the old Telinet contract.
+- This month's bill estimate (typical heat-pump villa load profile × annual kWh × month weight, real prices for the days so far), override with the actual kWh from the bill, and a comparison with GodEl Kvartspris.
 - Dark by default, sun/moon toggle remembered. Settings (gear) are saved in `localStorage`.
 
 ## Data
@@ -27,9 +27,10 @@ CORS-open, free; attribution link is in the footer. Days already fetched are kep
 | Månadseffekt (effekttariff, 16–25 A) | 66 kr/kW/month excl. moms, Nov–Mar only, on the highest hourly kW in peak time; ≤1 kW free | same |
 | Peak time | Nov–Mar, Mon–Fri 06–22; weekends, red days, julafton, nyårsafton, skärtorsdagen are off-peak | same |
 | Other fuse sizes | 16 A 1 285 kr · 25 A 2 425 kr · 35 A 2 985 · 50 A 3 490 · 63 A 4 450 kr/yr; 35–63 A: peak 19 öre, 110 kr/kW | same |
-| GodEl Kvartspris | 49 kr/month incl. moms, påslag 0 | [GodEl – Förstå elpriset](https://godel.se/elavtal-priser/forsta-elpriset/), [GodEl – Elavtal](https://godel.se/elavtal-priser/elavtal/) |
+| Telinet “2 års dynamiskt pris” (from 1 Dec 2026) | 0 kr/month for 24 months, then 69 kr; no bindningstid, 30 days uppsägning | Jürgen's contract |
+| Telinet påslag elcertifikat | 2,24 öre/kWh — **unconfirmed** whether this includes moms, until the next invoice | same |
+| GodEl Kvartspris (comparison) | 49 kr/month incl. moms, påslag 0 | [GodEl – Förstå elpriset](https://godel.se/elavtal-priser/forsta-elpriset/), [GodEl – Elavtal](https://godel.se/elavtal-priser/elavtal/) |
 | GodEl "other costs" (elcertifikat, ursprungsgarantier, balance etc.), SE3 | ≈ 6,0 öre/kWh incl. moms (Sep 2026) | [Elternativ – GodEl](https://elternativ.se/elbolag/godel) (changes monthly) |
-| Telinet (comparison) | 69 kr/month + 16,8 öre/kWh incl. moms | Jürgen's own contract figures |
 | Moms | 25 % | |
 
 Skövde Energi changes the model on **1 Jan 2027** (effekt fee from the average of the 3 highest peaks on 3 different days, and an optional
